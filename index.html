@@ -1,74 +1,43 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=763it5o0qe"></script>
-  <style>
-    * { margin: 0; padding: 0; }
-    html, body, #map { width: 100%; height: 100%; }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-  <script>
-    // URL 파라미터에서 위치 정보 가져오기
-    const urlParams = new URLSearchParams(window.location.search);
-    const lat = parseFloat(urlParams.get('lat')) || 37.5665;
-    const lng = parseFloat(urlParams.get('lng')) || 126.9780;
-    const zoom = parseInt(urlParams.get('zoom')) || 14;
+ <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=92e81dd90b3573e113dc9646d32c443d"></script>
+    <style>
+      * { margin: 0; padding: 0; }
+      html, body, #map { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const lat = parseFloat(urlParams.get('lat')) || 37.5665;
+      const lng = parseFloat(urlParams.get('lng')) || 126.9780;
+      const zoom = parseInt(urlParams.get('zoom')) || 3;
 
-    var map = new naver.maps.Map('map', {
-      center: new naver.maps.LatLng(lat, lng),
-      zoom: zoom
-    });
-
-    // React Native WebView와 통신
-    function sendToRN(data) {
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify(data));
-      }
-    }
-
-    // 지도 클릭 이벤트
-    naver.maps.Event.addListener(map, 'click', function(e) {
-      sendToRN({
-        type: 'mapClick',
-        lat: e.coord.lat(),
-        lng: e.coord.lng()
+      var map = new kakao.maps.Map(document.getElementById('map'), {
+        center: new kakao.maps.LatLng(lat, lng),
+        level: zoom
       });
-    });
 
-    // 지도 이동 완료 이벤트
-    naver.maps.Event.addListener(map, 'idle', function() {
-      var center = map.getCenter();
-      sendToRN({
-        type: 'mapIdle',
-        lat: center.lat(),
-        lng: center.lng(),
-        zoom: map.getZoom()
-      });
-    });
-
-    // RN에서 메시지 받기
-    window.addEventListener('message', function(event) {
-      try {
-        var data = JSON.parse(event.data);
-        if (data.type === 'setCenter') {
-          map.setCenter(new naver.maps.LatLng(data.lat, data.lng));
-        } else if (data.type === 'setZoom') {
-          map.setZoom(data.zoom);
-        } else if (data.type === 'addMarker') {
-          new naver.maps.Marker({
-            position: new naver.maps.LatLng(data.lat, data.lng),
-            map: map
-          });
+      function sendToRN(data) {
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(data));
         }
-      } catch (e) {}
-    });
+      }
 
-    // 초기화 완료 알림
-    sendToRN({ type: 'ready' });
-  </script>
-</body>
-</html>
+      kakao.maps.event.addListener(map, 'click', function(e) {
+        sendToRN({ type: 'mapClick', lat: e.latLng.getLat(), lng: e.latLng.getLng() });
+      });
+
+      kakao.maps.event.addListener(map, 'idle', function() {
+        var center = map.getCenter();
+        sendToRN({ type: 'mapIdle', lat: center.getLat(), lng: center.getLng(), zoom: map.getLevel() });
+      });
+
+      sendToRN({ type: 'ready' });
+    </script>
+  </body>
+  </html>
